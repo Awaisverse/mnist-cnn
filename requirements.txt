@@ -1,0 +1,11 @@
+# Python dependencies for MNIST CNN project
+# Compatible with Kaggle notebooks
+
+torch
+torchvision
+numpy
+matplotlib
+
+# Web application dependencies
+flask
+pillow
