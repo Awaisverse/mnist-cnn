@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST Digit Classifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .prediction {
+            text-align: center;
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            text-align: center;
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .probabilities {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .prob-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .prob-digit {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .prob-value {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .prob-item.highest {
+            background: #667eea;
+            color: white;
+        }
+
+        .prob-item.highest .prob-digit,
+        .prob-item.highest .prob-value {
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔢 MNIST Digit Classifier</h1>
+        <p class="subtitle">Upload an image of a handwritten digit (0-9)</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📤</div>
+            <div class="upload-text">Click to upload or drag & drop</div>
+            <div class="upload-hint">PNG, JPG, JPEG (Max 5MB)</div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <img id="previewImage" class="preview-image" alt="Preview">
+            <button class="btn" id="predictBtn">Predict Digit</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Analyzing image...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result-section" id="resultSection">
+            <div class="prediction" id="prediction"></div>
+            <div class="confidence" id="confidence"></div>
+            <div class="probabilities" id="probabilities"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const resultSection = document.getElementById('resultSection');
+        const prediction = document.getElementById('prediction');
+        const confidence = document.getElementById('confidence');
+        const probabilities = document.getElementById('probabilities');
+
+        let selectedFile = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showError('Please upload an image file');
+                return;
+            }
+
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewSection.style.display = 'block';
+                resultSection.style.display = 'none';
+                error.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Show loading, hide results
+            loading.style.display = 'block';
+            resultSection.style.display = 'none';
+            error.style.display = 'none';
+            predictBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Prediction failed');
+                }
+
+                // Display results
+                prediction.textContent = data.prediction;
+                confidence.textContent = `Confidence: ${data.confidence}%`;
+
+                // Display probabilities
+                probabilities.innerHTML = '';
+                let maxProb = 0;
+                for (let i = 0; i < 10; i++) {
+                    const prob = data.probabilities[i] || 0;
+                    if (prob > maxProb) maxProb = prob;
+                }
+
+                for (let i = 0; i < 10; i++) {
+                    const prob = data.probabilities[i] || 0;
+                    const probItem = document.createElement('div');
+                    probItem.className = 'prob-item' + (prob === maxProb ? ' highest' : '');
+                    probItem.innerHTML = `
+                        <div class="prob-digit">${i}</div>
+                        <div class="prob-value">${prob.toFixed(1)}%</div>
+                    `;
+                    probabilities.appendChild(probItem);
+                }
+
+                resultSection.style.display = 'block';
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+
